@@ -17,50 +17,52 @@ if ! command -v bws &>/dev/null; then
     rm /tmp/bws.zip
 fi
 
-# 3. Root of Trust (Handshake)
+# 3. Root of Trust (One-Time Ignition Handshake)
 if [[ -z "${BWS_ACCESS_TOKEN:-}" ]]; then
-    read -sp "[PROMPT] Enter BWS Access Token: " BWS_ACCESS_TOKEN
-    echo ""
+    if [[ "${1:-}" ]]; then
+        BWS_ACCESS_TOKEN="$1"
+    else
+        read -sp "[PROMPT] Enter Ephemeral BWS Access Token: " BWS_ACCESS_TOKEN
+        echo ""
+    fi
 fi
 export BWS_ACCESS_TOKEN
 
-# 4. Sovereign Pre-Flight (The Minimum Trio)
-echo "🔍 [PRE-FLIGHT] Verifying Bitwarden Seed Connectivity..."
+# 4. Sovereign Pre-Flight (The Seed Pull)
+echo "🔍 [PRE-FLIGHT] Pulling Sovereign Seeds from Bitwarden..."
 
-# Fetch Secret Manifest for Validation
-BWS_SECRETS=$(bws secret list | jq -r '.[] | .key')
-
-verify_secret() {
-    if ! echo "$BWS_SECRETS" | grep -qx "$1"; then
-        echo "❌ FATAL: Missing Critical Seed in BWS: $1"
-        exit 1
-    fi
-}
-
-# Verify the Minimum Trio (Seed PAT, DB URL, Master Key)
-verify_secret "GIT_PAT"
-verify_secret "DATABASE_URL"
-verify_secret "MASTER_ENCRYPTION_KEY"
-
-# Extract Bootstrap PAT for One-Time Clone
+# Fetch Critical Seeds (DB URL, Master Key, Git PAT)
+DATABASE_URL=$(bws secret list | jq -r '.[] | select(.key == "DATABASE_URL") | .value')
+MASTER_ENCRYPTION_KEY=$(bws secret list | jq -r '.[] | select(.key == "MASTER_ENCRYPTION_KEY") | .value')
 BOOTSTRAP_PAT=$(bws secret list | jq -r '.[] | select(.key == "GIT_PAT") | .value')
-echo "✅ [PRE-FLIGHT] Seeds Verified. Proceeding to Platform Ingestion..."
 
-# 5. Private Core Handover (Handshake)
+if [[ -z "$DATABASE_URL" || -z "$MASTER_ENCRYPTION_KEY" || -z "$BOOTSTRAP_PAT" ]]; then
+    echo "❌ FATAL: Sovereign Seeds missing from Bitwarden vault."
+    exit 1
+fi
+
+# 5. Harden Local Environment (Seed Persistence)
+CONFIG_DIR="/opt/platform/config"
+mkdir -p "$CONFIG_DIR"
+cat <<EOF > "$CONFIG_DIR/.env"
+DATABASE_URL="$DATABASE_URL"
+MASTER_ENCRYPTION_KEY="$MASTER_ENCRYPTION_KEY"
+EOF
+chmod 600 "$CONFIG_DIR/.env"
+echo "✅ [PRE-FLIGHT] Seeds Hardened (chmod 600). Proceeding to Ingestion..."
+
+# 6. Private Core Handover (Handshake)
 INSTALL_DIR="/opt/platform"
 mkdir -p "$INSTALL_DIR"
 if [[ ! -d "$INSTALL_DIR/.git" ]]; then
     git clone "https://x-access-token:${BOOTSTRAP_PAT}@github.com/Loans-Emporium/platform-core.git" "$INSTALL_DIR"
 fi
 
-# 6. Burn-After-Reading (Purge Ingestion Keys)
+# 7. Burn-After-Reading (Purge Ephemeral Secrets)
 unset BOOTSTRAP_PAT
-echo "🔥 [IGNITE] Bootstrap PAT purged from environment."
-
-# 7. Execute Confidential Setup (Stage 2)
-cd "$INSTALL_DIR"
-./setup.sh --bws-token "$BWS_ACCESS_TOKEN"
-
-# Final Purge of the Ignition Key (Bitwarden)
 unset BWS_ACCESS_TOKEN
-echo "🔥 [IGNITE] BWS token purged. Stage 1 Complete."
+echo "🔥 [IGNITE] Ephemeral Secrets Purged from Memory. Stage 1 Complete."
+
+# 8. Execute Final Setup (Stage 2)
+cd "$INSTALL_DIR"
+./setup.sh
