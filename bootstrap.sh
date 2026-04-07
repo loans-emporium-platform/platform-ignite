@@ -2,7 +2,7 @@
 # platform-ignite/bootstrap.sh — Minimal Sovereign Bridge (V15.5)
 # ─────────────────────────────────────────────────────────────────
 # This is a LEAN script. All confidential logic (UFW, Docker, Hardening)
-# is now moved into the private 'platform-core' repository.
+# is now moved into the private 'vps-brain' repository.
 # ─────────────────────────────────────────────────────────────────
 
 set -euo pipefail
@@ -51,11 +51,11 @@ EOF
 chmod 600 "$CONFIG_DIR/.env"
 echo "✅ [PRE-FLIGHT] Seeds Hardened (chmod 600). Proceeding to Ingestion..."
 
-# 6. Private Core Handover (Handshake)
+# 6. Private Runtime Handover (Handshake)
 INSTALL_DIR="/opt/platform"
 mkdir -p "$INSTALL_DIR"
 if [[ ! -d "$INSTALL_DIR/.git" ]]; then
-    git clone "https://x-access-token:${BOOTSTRAP_PAT}@github.com/Loans-Emporium/platform-core.git" "$INSTALL_DIR"
+    git clone "https://x-access-token:${BOOTSTRAP_PAT}@github.com/loans-emporium-platform/vps-brain.git" "$INSTALL_DIR"
 fi
 
 # 7. Burn-After-Reading (Purge Ephemeral Secrets)
