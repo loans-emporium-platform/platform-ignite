@@ -1,6 +1,6 @@
-# VPS-Ignite Workflows
+# Platform-Ignite Workflows
 
-This document outlines the workflows implemented in the vps-ignite repository, which serves as the L0 Ignition Phase for the Sovereign Zenith platform. It provides a minimal, secure bootstrap for provisioning VPS nodes.
+This document outlines the workflows implemented in the platform-ignite repository, which serves as the L0 Ignition Phase for the Sovereign Zenith platform. It provides a minimal, secure bootstrap for provisioning VPS nodes.
 
 ## Overview of Key Components
 - **bootstrap.sh**: The core script for node ignition.
@@ -31,8 +31,8 @@ This document outlines the workflows implemented in the vps-ignite repository, w
 - Minimal Attack Surface: Only essential tools installed.
 
 ## Integration with Other Repositories
-- **platform-control**: Provides vault secrets.
-- **platform-brain (vps-brain)**: Receives handoff for full setup.
+- **platform-commander**: Provides vault secrets.
+- **platform-core**: Receives handoff for full setup.
 - **platform-blueprint**: Follows architecture guidelines.
 
 ## Notes
