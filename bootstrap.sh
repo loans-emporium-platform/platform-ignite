@@ -28,6 +28,16 @@ if [[ -z "${BWS_ACCESS_TOKEN:-}" ]]; then
 fi
 export BWS_ACCESS_TOKEN
 
+# 3.5 Identity-First: Capture Hostname Before Doing Anything Irreversible
+if [[ -z "${VPS_HOSTNAME:-}" ]]; then
+    read -rp "[PROMPT] Enter VPS Hostname (e.g., prod-vps-01): " VPS_HOSTNAME
+fi
+if [[ -z "${VPS_HOSTNAME:-}" ]]; then
+    echo "❌ FATAL: VPS_HOSTNAME is required."
+    exit 1
+fi
+export VPS_HOSTNAME
+
 # 4. Sovereign Pre-Flight (The Seed Pull)
 echo "🔍 [PRE-FLIGHT] Pulling Sovereign Seeds from Bitwarden..."
 
@@ -58,11 +68,11 @@ if [[ ! -d "$INSTALL_DIR/.git" ]]; then
     git clone "https://x-access-token:${BOOTSTRAP_PAT}@github.com/loans-emporium-platform/platform-core.git" "$INSTALL_DIR"
 fi
 
-# 7. Burn-After-Reading (Purge Ephemeral Secrets)
+# 7. Execute Final Setup (Stage 2)
+cd "$INSTALL_DIR"
+./setup.sh --vps-name "$VPS_HOSTNAME"
+
+# 8. Burn-After-Reading (Purge Ephemeral Secrets)
 unset BOOTSTRAP_PAT
 unset BWS_ACCESS_TOKEN
-echo "🔥 [IGNITE] Ephemeral Secrets Purged from Memory. Stage 1 Complete."
-
-# 8. Execute Final Setup (Stage 2)
-cd "$INSTALL_DIR"
-./setup.sh
+echo "🔥 [IGNITE] Ephemeral Secrets Purged from Memory. Ignition Complete."
