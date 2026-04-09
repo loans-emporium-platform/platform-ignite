@@ -5,6 +5,10 @@
 # is now moved into the private 'platform-core' repository.
 # ─────────────────────────────────────────────────────────────────
 
+# Prevent secrets from landing in shell history — must be first
+unset HISTFILE
+set +o history
+
 set -euo pipefail
 
 # 1. Essential Tools
@@ -66,6 +70,16 @@ INSTALL_DIR="/opt/platform"
 mkdir -p "$INSTALL_DIR"
 if [[ ! -d "$INSTALL_DIR/.git" ]]; then
     git clone "https://x-access-token:${BOOTSTRAP_PAT}@github.com/loans-emporium-platform/platform-core.git" "$INSTALL_DIR"
+else
+    echo "📁 [CLONE] .git directory exists, attempting git pull..."
+    cd "$INSTALL_DIR"
+    git pull "https://x-access-token:${BOOTSTRAP_PAT}@github.com/loans-emporium-platform/platform-core.git" main 2>/dev/null || {
+        echo "⚠️ [CLONE] Git pull failed, re-cloning..."
+        cd /
+        rm -rf "$INSTALL_DIR"
+        mkdir -p "$INSTALL_DIR"
+        git clone "https://x-access-token:${BOOTSTRAP_PAT}@github.com/loans-emporium-platform/platform-core.git" "$INSTALL_DIR"
+    }
 fi
 
 # 7. Execute Final Setup (Stage 2)
@@ -75,4 +89,6 @@ cd "$INSTALL_DIR"
 # 8. Burn-After-Reading (Purge Ephemeral Secrets)
 unset BOOTSTRAP_PAT
 unset BWS_ACCESS_TOKEN
+unset DATABASE_URL
+unset MASTER_ENCRYPTION_KEY
 echo "🔥 [IGNITE] Ephemeral Secrets Purged from Memory. Ignition Complete."
